@@ -1,10 +1,13 @@
 <#
 Name:           DumbADPasswordChecker
 Author:         AJ Van Beest
-Last modified:  20210824T1834
+Last modified:  20210827T1724
 
 Description:
         Audit your active directory passwords for weak passwords, ask people with weak passwords to change them, force the change when they don't, and build statistics about these efforts to report out.
+
+Requirements:
+        - Powershell 7.x
 
 Roadmap:
         - Proper PS headers / documentation
@@ -13,34 +16,34 @@ Roadmap:
         - Statistical analysis of passwords
         - Historical user reporting
         - Secure credential handling
+        - Tools
+                + Check for existing installs
+                + Verify file integrity of downloads
+                + Offer to install the tool
 
 #>
 
-<# ======== Set Variables ======== #>
+<# ======== User Variables (feel free to tweak to your liking) ======== #>
+        # Set the working directory to a nice secure-by-default location
+        $WorkingDir = "C:\users\avanbeest\testing\"
+        # Create a timestamp for file names
+        $Time = get-date -f "yyyyMMddTHHMM"
 
-<# ======== Handle credentials ======== #>
-
-
-<# ======== Download tools ======== #>
-        <#
-                TO-DO:
-                - Checks to see if tools exist
-                - Validate downloads
-                - Offer to install tools automatically
-        #>
-
+<# ======== Script Variables (please leave as is) ======== #>
         # Build directory structure
-                # Set the working directory to a nice secure-by-default location
-                $WorkingDir = "C:\users\avanbeest\testing\"
-
-                # The rest of these directories will auto-build in your working directory
+                # These directories will auto-build in your working directory
                 $DataDir = $WorkingDir + "data\"
                 $Installers = $WorkingDir + "installers"; mkdir $Installers
                 $Dir7Zip = $Installers + "\7Zip"; mkdir $Dir7Zip
                 $DirHashcat = $Installers + "\hashcat"; mkdir $DirHashcat
                 $DirMentalist = $Installers + "\mentalist"; mkdir $DirMentalist
                 $DirGPG = $Installers + "\GPG"; mkdir $DirGPG
+        
 
+<# ======== Handle credentials ======== #>
+
+
+<# ======== Download tools ======== #>
         <# Check for, and get (if necessary) the tools we're going to use:
                 - 7Zip
                 - Python
@@ -97,12 +100,23 @@ Roadmap:
            
 
 <# ======== Crack you some hashes ======== #>
-        # Run Hashcat against the hashes using the Mentalist wordlist
-        # Remove the hashes; delete the .pot file! 
+        <# Run Hashcat against the hashes using the Mentalist wordlist
+         Remove the hashes; delete the .pot file! 
+
+         Keep two separate lists: 
+                - People with weak passwords: For communication, education, and remediation.
+                - The actual weak passwords: For statistics and reporting.
+#>
+       # $Users = | Export-Csv -Path $DataDir + "people_who_need_change.csv"   # Hashcat results! All the people who were found w/ weak passwords
+       # $Pass = | Export-Csv -Path $DataDir + "weak_pws.csv"    # All the weak passwords found
+        
+
 
 <# ======== Send nice emails ======== #>
-$Users | ForEach-Object {
-        $From = "security-operations@yourorg.here"
+
+$Days = # How many days do people have to change their passwords? (integer)
+$Users.mail | ForEach-Object {
+        $From = "security-operations@your-org.here"
         $To = "email address here”
         $Cc = "manager's email address here"
         $Subject = "Something less spammy than 'Action required re: your password'"
@@ -143,11 +157,18 @@ $Users | ForEach-Object {
 <# ======== Initial reporting ======== #>
 
 
-<# ======== Send "Now it's gettin' real emais" ======== #>
+<# ======== Send "Now it's gettin' real emais" ======== 
+        - Change the number after
 
+#>
+$GettingRealUsers = $Users | foreach-object {
+        get-aduser -filter * -properties * | where {$_.whenChanged -lt (get-date).adddays(-($Days-1)) -and $_.Enabled -eq "True"} | select name, mail, whenChanged
+        }
 
 <# ======== Send sorry/not-sorry emails ======== #>
-
+$SorryNotSorry = $GettingRealUsers | foreach-object {
+        get-aduser -filter * -properties * | where {$_.whenChanged -lt (get-date).adddays(-1) -and $_.Enabled -eq "True"} | select name, mail, whenChanged
+        }
 
 <# ======== Final reporting ======== #>
 
