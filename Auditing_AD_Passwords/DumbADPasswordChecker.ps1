@@ -16,6 +16,8 @@ Roadmap:
         - Statistical analysis of passwords
         - Historical user reporting
         - Secure credential handling
+        - Move email config to their own directory
+        - Secure-wipe the hashes / .pot file
         - Tools
                 + Check for existing installs
                 + Verify file integrity of downloads
@@ -26,6 +28,8 @@ Roadmap:
 <# ======== User Variables (feel free to tweak to your liking) ======== #>
         # Set the working directory to a nice secure-by-default location
         $WorkingDir = "C:\users\avanbeest\testing\"
+        $Days = # How many days do people have to change their passwords? (integer)
+
         # Create a timestamp for file names
         $Time = get-date -f "yyyyMMddTHHMM"
 
@@ -33,11 +37,17 @@ Roadmap:
         # Build directory structure
                 # These directories will auto-build in your working directory
                 $DataDir = $WorkingDir + "data\"
+                $EmailDir = $WorkingDir + "email\"
+                $SecretsDir = $WorkingDir + "secrets\"
+                $DictionaryDir = $WorkingDir + "wordlists\"
                 $Installers = $WorkingDir + "installers"; mkdir $Installers
-                $Dir7Zip = $Installers + "\7Zip"; mkdir $Dir7Zip
-                $DirHashcat = $Installers + "\hashcat"; mkdir $DirHashcat
-                $DirMentalist = $Installers + "\mentalist"; mkdir $DirMentalist
-                $DirGPG = $Installers + "\GPG"; mkdir $DirGPG
+                        $Dir7Zip = $Installers + "\7Zip"; mkdir $Dir7Zip
+                        $DirHashcat = $Installers + "\hashcat"; mkdir $DirHashcat
+                        $DirMentalist = $Installers + "\mentalist"; mkdir $DirMentalist
+                        $DirGPG = $Installers + "\GPG"; mkdir $DirGPG
+
+        # Get environmental information
+                $AllAccounts = get-aduser -filter * | Select-Object name, mail, whenChanged | Export-Csv -path $SecretsDir + $Time + "_all-AD-accounts.csv"
         
 
 <# ======== Handle credentials ======== #>
@@ -85,7 +95,7 @@ Roadmap:
         #>
 
 
-<# ======== Build a "Dictionary of Dumb" ======== #>
+<# ======== Build a "Dictionary of Dumb Passwords" ======== #>
         # Run mentalist to build a wordlist
         write-host "`n==========`n`nStarting Mentalist for wordlist creation`n`n==========";
         cd $DirMentalist; .\Mentalist.exe
@@ -114,7 +124,7 @@ Roadmap:
 
 <# ======== Send nice emails ======== #>
 
-$Days = # How many days do people have to change their passwords? (integer)
+
 $Users.mail | ForEach-Object {
         $From = "security-operations@your-org.here"
         $To = "email address here”
@@ -154,21 +164,35 @@ $Users.mail | ForEach-Object {
         Send-MailMessage -From $From -to $To -Cc $Cc -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Port $SMTPPort -UseSsl -Credential (Get-Credential)
 }
 
-<# ======== Initial reporting ======== #>
-
-
-<# ======== Send "Now it's gettin' real emais" ======== 
-        - Change the number after
+<# ======== Initial reporting ======== 
+        - How many passwords were guessed
+        - Who dun it
+        - How many people vs. service accounts
+        - Employees vs. vendors
+        - Top 10 passwords
 
 #>
+
+
+<# ======== Send "Now it's gettin' real emais" ======== #>
+
 $GettingRealUsers = $Users | foreach-object {
-        get-aduser -filter * -properties * | where {$_.whenChanged -lt (get-date).adddays(-($Days-1)) -and $_.Enabled -eq "True"} | select name, mail, whenChanged
+        get-aduser -filter * -properties * | where {$_.whenChanged -lt (get-date).adddays(-($Days-1)) -and $_.Enabled -eq "True"} | Select-Object name, mail, whenChanged
         }
 
 <# ======== Send sorry/not-sorry emails ======== #>
 $SorryNotSorry = $GettingRealUsers | foreach-object {
-        get-aduser -filter * -properties * | where {$_.whenChanged -lt (get-date).adddays(-1) -and $_.Enabled -eq "True"} | select name, mail, whenChanged
+        get-aduser -filter * -properties * | where {$_.whenChanged -lt (get-date).adddays(-1) -and $_.Enabled -eq "True"} | Select-Object name, mail, whenChanged
         }
 
-<# ======== Final reporting ======== #>
+<# ======== Final reporting ======== 
+        - Same as inital, plus:
+                - Total easy-to-guess passwords detected
+                - Total changed / percent of all pws
+                - How many people / who changed pw voluntarially?
+                - How many / who were forcibly reset?
+                - People detected multiple times
+                - Month over month trends
+
+#>
 
