@@ -1,10 +1,10 @@
 <#
 Name:           DumbADPasswordChecker
 Author:         AJ Van Beest
-Last modified:  20210827T1724
+Last modified:  20210887T0555
 
 Description:
-        Audit your active directory passwords for weak passwords, ask people with weak passwords to change them, force the change when they don't, and build statistics about these efforts to report out.
+        Audit your active directory passwords for easily-guessed passwords, ask people who have them to change them, force the change if need be, and build statistics about these efforts to report out.
 
 Requirements:
         - Powershell 7.x
@@ -27,8 +27,9 @@ Roadmap:
 
 <# ======== User Variables (feel free to tweak to your liking) ======== #>
         # Set the working directory to a nice secure-by-default location
-        $WorkingDir = "C:\users\avanbeest\testing\"
-        $Days = # How many days do people have to change their passwords? (integer)
+        $WorkingDir = "C:\users\avanbeest\testing\"; mkdir $WorkingDir
+        $Days = 4 # How many days do people have to change their passwords? (integer)
+        $YourOrg = "Contoso" # The name of your organization
 
         # Create a timestamp for file names
         $Time = get-date -f "yyyyMMddTHHMM"
@@ -36,10 +37,10 @@ Roadmap:
 <# ======== Script Variables (please leave as is) ======== #>
         # Build directory structure
                 # These directories will auto-build in your working directory
-                $DataDir = $WorkingDir + "data\"
-                $EmailDir = $WorkingDir + "email\"
-                $SecretsDir = $WorkingDir + "secrets\"
-                $DictionaryDir = $WorkingDir + "wordlists\"
+                $DataDir = $WorkingDir + "data\"; mkdir $DataDir
+                $EmailDir = $WorkingDir + "email\"; mkdir $EmailDir
+                $SecretsDir = $WorkingDir + "secrets\"; mkdir $SecretsDir
+                $WordlistsDir = $WorkingDir + "wordlists\"; mkdir $WordlistsDir
                 $Installers = $WorkingDir + "installers"; mkdir $Installers
                         $Dir7Zip = $Installers + "\7Zip"; mkdir $Dir7Zip
                         $DirHashcat = $Installers + "\hashcat"; mkdir $DirHashcat
@@ -48,6 +49,8 @@ Roadmap:
 
         # Get environmental information
                 $AllAccounts = get-aduser -filter * | Select-Object name, mail, whenChanged | Export-Csv -path $SecretsDir + $Time + "_all-AD-accounts.csv"
+
+                # Get AD password policies as per https://devblogs.microsoft.com/scripting/use-powershell-to-get-account-lockout-and-password-policy/
         
 
 <# ======== Handle credentials ======== #>
@@ -117,24 +120,24 @@ Roadmap:
                 - People with weak passwords: For communication, education, and remediation.
                 - The actual weak passwords: For statistics and reporting.
 #>
-       # $Users = | Export-Csv -Path $DataDir + "people_who_need_change.csv"   # Hashcat results! All the people who were found w/ weak passwords
-       # $Pass = | Export-Csv -Path $DataDir + "weak_pws.csv"    # All the weak passwords found
+       # $Users = | Export-Csv -Path $DataDir + "people_who_need_change.csv"   # Hashcat results! All the people who were found with easy-to-guess passwords
+       # $Pass = | Export-Csv -Path $DataDir + "weak_pws.csv"    # All the easy-to-guess passwords found
         
 
 
 <# ======== Send nice emails ======== #>
 
 
-$Users.mail | ForEach-Object {
+$Users | ForEach-Object {
         $From = "security-operations@your-org.here"
-        $To = "email address here”
-        $Cc = "manager's email address here"
+        $To = $_.mail
+        #$Cc = "manager's email address here"
         $Subject = "Something less spammy than 'Action required re: your password'"
         $Body = "
         <h2>A quick note about your password</h2>
 
         <h3>Please verify this message with your supervisor!</h3>
-        Hi, $aduser.name,</p>
+        Hi, $_.name,</p>
         I'm Alicia Jones from the $YourOrg information security team.</p>
 
         First thing first: I know that this email feels totally suspicious. Before going any further, please verify it's legitimacy with either your supervisor or the $YourOrg help desk.</p>
