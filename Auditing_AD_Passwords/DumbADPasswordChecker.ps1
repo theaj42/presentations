@@ -172,4 +172,3 @@ $SorryNotSorry = $GettingRealUsers | foreach-object {
 
 <# ======== Final reporting ======== #>
 
-#VSC source control check
