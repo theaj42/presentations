@@ -1,4 +1,4 @@
-# Find Dumbass Passwords in Your Active Directory
+# "Find Easy-to-Guess Passwords in Your Active Directory," he said.
 
 ## "It'll be fun," he said.
 
@@ -10,4 +10,10 @@ It needs things like
 * Where to get the slide deck ([It's here!](https://docs.google.com/presentation/d/14rw4tLiVrDzuWUMbtwyxtE2iy2hHnUT8N8RdxkZFgds/edit?usp=sharing)) ;
 * How to use the script here;
 * Other files that might be useful (or necessary!);
-* Other helpful resources.
+### Wordlist resources
+* [The Mentalist repo](https://github.com/sc0tfree/mentalist/releases). (Old but good!)
+
+### Hashcat resources
+* [The official Hashcat site](https://hashcat.net/hashcat/).
+* Here's a great tutorial: [https://laconicwolf.com/2018/09/29/hashcat-tutorial-the-basics-of-cracking-passwords-with-hashcat/](https://laconicwolf.com/2018/09/29/hashcat-tutorial-the-basics-of-cracking-passwords-with-hashcat/)
+* [Hashcat cheet sheet](https://github.com/frizb/Hashcat-Cheatsheet)
